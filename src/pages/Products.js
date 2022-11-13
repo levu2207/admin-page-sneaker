@@ -64,14 +64,17 @@ const Products = () => {
   const handleSave = (data) => {
     const formData = new FormData();
     for (const key in data) formData.append(key, data[key]);
-    for (let i = 0; i < files.length; i++) {
-      formData.append("images", files[i]);
+    if (files) {
+      for (let i = 0; i < files.length; i++) {
+        formData.append("images", files[i]);
+      }
     }
 
     if (data.id === 0) {
       productService.add(formData).then((res) => {
         if (res.errorCode === 0) {
           getAllData();
+          setFiles(null);
           handleModalClose();
           toast.success("Thêm Sản Phẩm Thành Công !");
         } else {
@@ -82,6 +85,7 @@ const Products = () => {
       productService.update(data.id, formData).then((res) => {
         if (res.errorCode === 0) {
           getAllData();
+          setFiles(null);
           handleModalClose();
           toast.success("Cập Nhật Sản phẩm Thành Công!");
         } else toast.error(res.message);
@@ -108,10 +112,14 @@ const Products = () => {
       brand: Yup.string().required("Hãy Nhập Nhãn Hiệu"),
       name: Yup.string()
         .required("Hãy Nhập Tên Sản Phẩm")
-        .min(3, "At least 3 characters"),
+        .min(3, "Tên phải it nhất 3 lý tự"),
       description: Yup.string().required("Hãy Nhập Mô Tả Sản Phẩm"),
-      price: Yup.number().required("Hãy Nhập Giá Tiền").min(100000),
-      amount: Yup.number().required("Hãy Nhập Số Lượng Sản Phẩm"),
+      price: Yup.number("Giá tiền phải là số")
+        .required("Hãy Nhập Giá Tiền")
+        .min(100000, "Giá thấp nhất 100.000đ"),
+      amount: Yup.number()
+        .required("Hãy Nhập Số Lượng Sản Phẩm")
+        .min(1, "Số lượng ít nhất là 1"),
       categoryId: Yup.number().required("Hãy Chọn Danh Mục Sản Phẩm"),
     }),
     onSubmit: (values) => {
@@ -124,7 +132,11 @@ const Products = () => {
   const showEdit = (e, product) => {
     if (e) e.preventDefault();
     if (product.id > 0) {
-      setImagePreview(product.imageArr[1]);
+      if (product.imageArr?.length > 0) {
+        setImagePreview(product.imageArr[1]);
+      } else {
+        setImagePreview(defaultImgUrl);
+      }
       productService.get(product.id).then((res) => {
         if (res.errorCode === 0) {
           formik.setValues(res.data);
@@ -249,7 +261,7 @@ const Products = () => {
                         {product.name}
                       </td>
                       <td className="align-middle text-center">
-                        {product.imageArr.map((image) => (
+                        {product.imageArr?.map((image) => (
                           <img
                             className="f-lex flex-wrap"
                             key={image}
@@ -432,6 +444,7 @@ const Products = () => {
             Close
           </Button>
           <Button
+            type="submit"
             variant="primary"
             onClick={formik.handleSubmit}
             disabled={!formik.dirty || !formik.isValid}
